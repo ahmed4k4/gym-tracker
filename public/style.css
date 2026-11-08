@@ -221,3 +221,30 @@ button.exn{background:none;border:0;padding:4px 0;cursor:pointer}
 .hrow{grid-template-columns:1.2fr 2fr 1fr 1fr}
 textarea{resize:vertical;font-family:inherit}
 @media(max-width:640px){#tabs button{font-size:11px;padding:4px 2px}.rr{grid-template-columns:70px 1fr auto auto}.hrow{grid-template-columns:1fr 1fr}}
+
+/* ---- v9 ---- */
+.set{grid-template-columns:28px 1fr 1fr 44px 34px 34px}
+.set .snote{grid-column:1/-1;font-size:14px;padding:7px 10px}
+.acts2{display:flex;gap:6px;flex-wrap:wrap}
+.dnotes{display:grid;gap:6px}.dnotes .x{border:0;background:none;color:var(--mute);cursor:pointer;min-width:34px}
+#tx{border:0;background:none;color:inherit;font-size:16px;cursor:pointer;opacity:.7;min-width:30px}
+.plist{display:grid;gap:6px;max-height:48vh;overflow:auto}
+.pi{display:grid;gap:2px;text-align:start;border:1px solid var(--line);background:var(--soft);border-radius:12px;padding:10px 12px;cursor:pointer;min-height:48px}
+.pi small{color:var(--mute)}.pi.new{border-style:dashed}
+.pi:hover,.pi:focus-visible{border-color:var(--ink)}
+.dbox .chips{padding-bottom:2px}
+
+/* ---- v10 ---- */
+.exf{flex-wrap:wrap}
+.rest{display:flex;align-items:center;gap:4px;color:var(--mute)}
+.rest input{width:92px;padding:8px 6px;text-align:center;font-size:15px}
+.exf .note{min-width:160px}
+
+.pd{background:var(--soft);border-radius:12px;padding:8px 12px}.pd summary{cursor:pointer;display:flex;gap:8px;align-items:center;flex-wrap:wrap;min-height:36px}
+.pe{display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}.pe input{width:22px;height:22px}.pe span{display:grid}.pe small{color:var(--mute)}.pd .btn{margin-top:8px}
+
+#vLib{display:grid;gap:14px;max-width:760px;width:100%;margin:0 auto}
+.lib{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.lib>div{display:grid;min-width:0}.lib small{color:var(--mute)}
+.ord{width:64px!important;text-align:center;padding:8px 4px}
+@media(max-width:640px){.lib{flex-direction:column;align-items:stretch}#tabs button{font-size:10.5px}}

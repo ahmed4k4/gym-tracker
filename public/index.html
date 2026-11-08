@@ -32,7 +32,7 @@
       <button id="menu" class="btn" aria-label="القائمة">☰</button><button id="nm" class="btn">اسمي</button><button id="theme" class="btn" aria-label="الوضع الليلي">◐</button><button id="exp" class="btn">نسخة</button><button id="logout" class="btn">خروج</button>
     </div>
   </header>
-  <nav id="tabs"><button data-v="day" class="on"><i>📅</i>اليوم</button><button data-v="log"><i>📋</i>السجل</button><button data-v="ex"><i>📈</i>التمارين</button><button data-v="set"><i>⚙️</i>الإعدادات</button></nav>
+  <nav id="tabs"><button data-v="day" class="on"><i>📅</i>اليوم</button><button data-v="log"><i>📋</i>السجل</button><button data-v="ex"><i>📈</i>التمارين</button><button data-v="lib"><i>📚</i>المكتبة</button><button data-v="set"><i>⚙️</i>الإعدادات</button></nav>
   <main>
     <section id="hero" class="vd"></section>
     <section id="stats" class="vd"></section>
@@ -49,11 +49,12 @@
     <section id="panel" class="vd"></section>
     <section id="vLog" hidden></section>
     <section id="vEx" hidden></section>
+    <section id="vLib" hidden></section>
     <section id="vSet" hidden></section>
   </main>
 </div>
 <button id="fab" aria-label="إضافة تمرين" title="إضافة تمرين">+</button>
-<div id="timer" hidden><span id="tb"></span><b id="tv">راحة</b></div>
+<div id="timer" hidden><span id="tb"></span><b id="tv">راحة</b><button id="tx" aria-label="إيقاف المؤقت">✕</button></div>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>

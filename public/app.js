@@ -101,21 +101,21 @@ function card(u){
     :`<div class="row meal"><span class="n">${esc(x.n)}</span><span>${esc(x.k)}</span><span>${esc(x.p)}</span><span></span></div>`).join('')||'<div class="empty">لا توجد وجبات مسجلة.</div>';
   return `<article class="pcard${can?'':' ro'}" style="--c:${colorOf(u)}" data-u="${u}">
   <h3>${esc(nameOf(u))}${mine?' (أنت)':''}<label class="check"><input type="checkbox" data-a="done" ${d.done?'checked':''} ${mine?'':'disabled'}>تم التمرين</label></h3>${mine&&d.done?'<div class="lock">🔒 اليوم مكتمل ولا يمكن تعديله. ألغِ «تم التمرين» لإعادة فتحه.</div>':''}
-  ${can?`<input data-a="title" value="${esc(d.title)}" placeholder="اسم اليوم (مثال: صدر وترايسبس)">`:`<h4>${esc(d.title||'بدون عنوان')}</h4>`}
-  ${can?`<div class="row" style="grid-template-columns:1fr auto"><label>وزن الجسم (كغ) <input data-a="bw" type="number" inputmode="decimal" step="0.1" value="${esc(d.bw)}" style="width:90px"></label><button class="btn sm" data-a="copy">نسخ آخر تمرين</button></div>`:(d.bw?`<div class="sum">وزن الجسم: ${esc(d.bw)} كغ</div>`:'')}
+  ${can?`<input data-a="title" value="${esc(d.title)}" placeholder="اسم اليوم">`:`<h4>${esc(d.title||'بدون عنوان')}</h4>`}
+  ${can?`<div class="row" style="grid-template-columns:1fr auto"><label>وزن الجسم (كغ) <input data-a="bw" type="number" inputmode="decimal" step="0.1" value="${esc(d.bw)}" style="width:90px"></label><span class="acts2"><button class="btn sm" data-a="copy">نسخ آخر تمرين</button><button class="btn sm" data-a="cpday">نسخ من يوم سابق</button><button class="btn sm" data-a="tplin">إدراج قالب يوم</button><button class="btn sm" data-a="tplsave">حفظ كقالب</button></span></div>`:(d.bw?`<div class="sum">وزن الجسم: ${esc(d.bw)} كغ</div>`:'')}
   ${ex}
   ${can?'<button class="btn sm" data-a="add">+ تمرين</button>':''}
   <div class="sum" data-sv>حجم اليوم: ${tot.toLocaleString('ar-EG')} كغ${prs(u,d)?` · 🏆 ${prs(u,d)} رقم قياسي`:''}</div>
   <div class="row hdr meal"><span>الأكل</span><span>سعرات</span><span>بروتين</span><span></span></div>${ml}
   ${can?'<button class="btn sm" data-a="madd">+ وجبة</button>':''}
   <div class="sum" data-sk>الإجمالي: ${kc.toLocaleString('ar-EG')} سعرة · ${pr} جم بروتين</div>
-  ${can?`<textarea data-a="note" rows="2" placeholder="ملاحظات (نوم، إصابات، إحساس التمرين...)">${esc(d.note)}</textarea>`:(d.note?`<div class="sum">ملاحظات: ${esc(d.note)}</div>`:'')}
+  ${can?`<div class="dnotes">${(notesArr(d).length?notesArr(d):['']).map((n,k)=>`<div class="exf"><input data-a="dnote" data-ni="${k}" class="note" value="${esc(n)}" placeholder="ملاحظة اليوم"><button data-a="nrm" data-ni="${k}" class="x" aria-label="حذف">✕</button></div>`).join('')}<button class="btn sm" data-a="nadd">+ ملاحظة</button></div>`:notesArr(d).map(n=>`<div class="sum">📝 ${esc(n)}</div>`).join('')}
   </article>`;
 }
 function renderPanel(){
   const dt=new Date(S.sel+'T00:00');
   const us=uids().sort((a,b)=>(a===S.me?.uid?-1:0)-(b===S.me?.uid?-1:0));
-  $('#panel').innerHTML=`<datalist id="exl">${[...new Set(Object.values(S.days[S.me?.uid]||{}).flatMap(d=>(d.exercises||[]).map(e=>e.n)).filter(Boolean))].map(n=>`<option value="${esc(n)}">`).join('')}</datalist><div class="dh"><button class="btn" data-nav="-1" aria-label="اليوم السابق">›</button><h2>${DOW[dt.getDay()]} ${dt.getDate()} ${MONTHS[dt.getMonth()]}${S.sel===iso(new Date())?' · اليوم':''}</h2><button class="btn" data-nav="1" aria-label="اليوم التالي">‹</button></div>`+us.map(card).join('');
+  $('#panel').innerHTML=`<datalist id="rl">${(prof().timer||[120,180,240]).map(x=>`<option value="${x}">`).join('')}</datalist><datalist id="exl">${[...new Set(Object.values(S.days[S.me?.uid]||{}).flatMap(d=>(d.exercises||[]).map(e=>e.n)).concat(libL().map(([,o])=>o.n)).filter(Boolean))].map(n=>`<option value="${esc(n)}">`).join('')}</datalist><div class="dh"><button class="btn" data-nav="-1" aria-label="اليوم السابق">›</button><h2>${DOW[dt.getDay()]} ${dt.getDate()} ${MONTHS[dt.getMonth()]}${S.sel===iso(new Date())?' · اليوم':''}</h2><button class="btn" data-nav="1" aria-label="اليوم التالي">‹</button></div>`+us.map(card).join('');
 }
 function render(){renderTop();renderPanel();updateNet()}
 
@@ -130,11 +130,18 @@ $('#panel').onclick=async e=>{
   const a=b.dataset.a,i=+b.closest('[data-i]')?.dataset.i,j=+b.closest('[data-j]')?.dataset.j;
   if((a==='rm'||a==='mrm')&&!await ask('حذف','هل تريد حذف هذا العنصر؟ لا يمكن التراجع.','حذف'))return;
   if(a==='info')return exInfo(b.closest('.pcard').dataset.u,i);
-  if(a==='add')return addExDlg();
+  if(a==='add')return pickEx();
+  if(a==='cpday')return copyFrom();
+  if(a==='tplin')return useTpl();
+  if(a==='tplsave')return saveTpl();
+  if(a==='libsave')return saveLibEx(i);
   if(a==='madd')return addMealDlg();
   mutate(d=>{
     if(a==='copy'){const D=S.days[S.me.uid]||{},p=Object.keys(D).filter(k=>k<S.sel&&D[k].exercises?.length).sort().pop();if(p){d.title=d.title||D[p].title;d.exercises=structuredClone(D[p].exercises);d.exercises.forEach(e=>ensure(e).sets.forEach(x=>x.x=false))}else show('<h3>لا يوجد تمرين سابق</h3><p>سجّل تمارين في يوم سابق أولاً ثم انسخها.</p><form method="dialog" class="dact"><button class="btn main">حسناً</button></form>')}
     if(a==='sadd'){const e=ensure(d.exercises[i]),l=e.sets[e.sets.length-1]||{r:10,w:0};e.sets.push({r:l.r,w:l.w,x:false})}
+    if(a==='sn'){const st=ensure(d.exercises[i]).sets[j];if(st.n==null)st.n='';else if(!st.n)delete st.n}
+    if(a==='nadd'){d.notes=[...notesArr(d),''];delete d.note}
+    if(a==='nrm'){const n=notesArr(d);n.splice(+b.dataset.ni,1);d.notes=n;delete d.note}
     if(a==='srm')ensure(d.exercises[i]).sets.splice(j,1);
     if(a==='add')d.exercises.push({n:'',s:3,r:10,w:0});
     if(a==='madd')d.meals.push({n:'',k:'',p:''});
@@ -146,12 +153,12 @@ $('#panel').onclick=async e=>{
 };
 $('#panel').onchange=async e=>{
   const t=e.target,a=t.dataset.a,row=t.closest('[data-i]'),i=+row?.dataset.i;
-  if(t.dataset.s){const j=+t.closest('[data-j]').dataset.j,k=t.dataset.s;mutate(d=>{const st=ensure(d.exercises[i]).sets[j];if(k==='x')st.x=t.checked;else st[k]=+t.value},k==='x');if(k!=='x')updateSums();return}
+  if(t.dataset.s){const j=+t.closest('[data-j]').dataset.j,k=t.dataset.s;mutate(d=>{const st=ensure(d.exercises[i]).sets[j];if(k==='x')st.x=t.checked;else st[k]=k==='n'?t.value:+t.value},k==='x');if(k!=='x')updateSums();if(k==='x'&&t.checked){const r=+(S.days[S.me.uid]?.[S.sel]?.exercises||[])[i]?.rest||0;if(r>0)startTimer(r);else if(prof().auto!==false)startTimer((prof().timer||[120,180,240])[0])}return}
   if(t.dataset.k||t.dataset.m)return mutate(d=>{if(t.dataset.k)d.exercises[i][t.dataset.k]=t.type==='number'?+t.value:t.value;else d.meals[i][t.dataset.m]=t.type==='number'?+t.value:t.value},false)||updateSums();
   if(a==='bw')return mutate(d=>d.bw=+t.value||'',false);
   if(a==='done'){if(!t.checked&&!await ask('فتح اليوم للتعديل','اليوم مكتمل. هل تريد إعادة فتحه للتعديل؟','فتح')){t.checked=true;return}mutate(d=>d.done=t.checked);if(t.checked)confetti()}
   if(a==='title')mutate(d=>d.title=t.value.trim());
-  if(a==='note')mutate(d=>d.note=t.value);
+  if(a==='dnote'){const ni=+t.dataset.ni;mutate(d=>{const n=notesArr(d);n[ni]=t.value;d.notes=n.filter((x,k)=>(x||'').trim()||k===ni);delete d.note},false);return}
 };
 
 // ---------- مميزات إضافية ----------
@@ -178,12 +185,152 @@ function drawChart(){
   $('#chart').innerHTML=`<svg viewBox="0 0 620 195" role="img" aria-label="منحنى التقدم"><text x="4" y="24">${y1.toFixed(1)}</text><text x="4" y="172">${y0.toFixed(1)}</text><text x="50" y="190">${f(x0)}</text><text x="560" y="190">${f(x1)}</text>`+
    ser.map(s=>`<polyline pathLength="1" fill="none" stroke="${colorOf(s.u)}" stroke-width="2.5" points="${s.p.map(a=>X(a[0])+','+Y(a[1])).join(' ')}"/>`+s.p.map(a=>`<circle cx="${X(a[0])}" cy="${Y(a[1])}" r="4" fill="${colorOf(s.u)}"><title>${esc(nameOf(s.u))}: ${a[1]} (${f(a[0])})</title></circle>`).join('')).join('')+'</svg>';
 }
-let tt;$('#timer').onclick=e=>{const s=+e.target.dataset.s;if(!s)return;clearInterval(tt);let r=s;const v=$('#tv');v.textContent=mmss(r);
-  tt=setInterval(()=>{r--;v.textContent=r>0?mmss(r):'انتهت الراحة';if(r<=0){clearInterval(tt);navigator.vibrate?.([300,100,300]);try{const c=new AudioContext(),o=c.createOscillator();o.connect(c.destination);o.start();o.stop(c.currentTime+.4)}catch{}}},1000)};
+
 $('#exp').onclick=()=>{const b=new Blob([JSON.stringify({user:S.me.email,days:S.days[S.me.uid]||{}},null,1)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='gym-backup-'+iso(new Date())+'.json';a.click()};
 document.documentElement.dataset.t=localStorage.t||'';
 $('#theme').onclick=()=>{const d=(document.documentElement.dataset.t||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'))==='dark'?'light':'dark';document.documentElement.dataset.t=d;localStorage.t=d};
 
+// ---------- مؤقت الراحة (دقيق وفي الخلفية) ----------
+const TK='gymTimer',notesArr=d=>d.notes?[...d.notes]:d.note?[d.note]:[];
+let tick,wl,actx;
+function beep(){try{actx.resume?.();[0,.4,.8].forEach(t=>{const o=actx.createOscillator(),g=actx.createGain(),n=actx.currentTime+t;o.frequency.value=880;o.connect(g);g.connect(actx.destination);g.gain.setValueAtTime(.5,n);g.gain.exponentialRampToValueAtTime(.001,n+.32);o.start(n);o.stop(n+.32)})}catch{}}
+function keepAwake(){navigator.wakeLock?.request('screen').then(l=>wl=l).catch(()=>{})}
+function startTimer(sec){
+  try{actx??=new(window.AudioContext||window.webkitAudioContext)();actx.resume?.()}catch{}
+  const end=Date.now()+sec*1000;localStorage[TK]=end;
+  if('Notification' in window&&Notification.permission==='default')Notification.requestPermission();
+  keepAwake();navigator.serviceWorker?.controller?.postMessage({rest:sec*1000,id:end});runTimer();
+}
+function runTimer(){
+  clearInterval(tick);const v=$('#tv');
+  const f=()=>{const e=+localStorage[TK]||0;if(!e){v.textContent='راحة';return}
+    const r=Math.ceil((e-Date.now())/1000);if(r>0){v.textContent=mmss(r);return}
+    clearInterval(tick);localStorage.removeItem(TK);v.textContent='انتهت الراحة';wl?.release?.();
+    if(Date.now()-e<10000&&prof().sound!==false){beep();navigator.vibrate?.([400,150,400,150,400]);
+      if('Notification' in window&&Notification.permission==='granted')navigator.serviceWorker?.ready.then(r=>r.showNotification('انتهت الراحة 💪',{body:'ابدأ المجموعة التالية',tag:'rest',renotify:true,vibrate:[300,100,300]})).catch(()=>{})}};
+  f();tick=setInterval(f,250);
+}
+$('#timer').onclick=e=>{
+  if(e.target.id==='tx'){clearInterval(tick);localStorage.removeItem(TK);$('#tv').textContent='راحة';wl?.release?.();navigator.serviceWorker?.controller?.postMessage({cancel:1});return}
+  const sec=+e.target.dataset.s;if(sec)startTimer(sec)};
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&localStorage[TK]){runTimer();keepAwake()}});
+if(localStorage[TK])runTimer();
+
+// ---------- نسخ واختيار التمارين ----------
+const msg=(h,p)=>show(`<h3>${h}</h3><p>${p}</p><form method="dialog" class="dact"><button class="btn main">حسناً</button></form>`);
+const dstr=n=>{const x=new Date();x.setDate(x.getDate()+n);return iso(x)};
+const clean=ex=>structuredClone(ex).map(e=>{ensure(e).sets.forEach(x=>{x.x=false;delete x.n});return e});
+async function pickDate(t,p){const v=await show(`<h3>${t}</h3><p>${p}</p><form method="dialog" class="dform"><input id="cd" type="date" value="${dstr(1)}" class="big"><div class="dact"><button class="btn main" value="ok">نسخ</button><button class="btn" value="">إلغاء</button></div></form>`);return v==='ok'&&$('#cd').value?$('#cd').value:null}
+const put=(k,o)=>{delete o.fromRoutine;db.doc(`users/${S.me.uid}/days/${k}`).set(o);toast('تم النسخ إلى '+fd(k)+' ✓')};
+async function copyFrom(){
+  const D0=S.days[S.me.uid]||{},ks=Object.keys(D0).filter(k=>k!==S.sel&&(D0[k].exercises||[]).length).sort().reverse().slice(0,60);
+  if(!ks.length)return msg('لا توجد أيام سابقة','سجّل تمارين في يوم آخر أولاً ثم انسخها هنا.');
+  const v=await show(`<h3>نسخ إلى ${fd(S.sel)}</h3><p>اختر يوماً كاملاً، أو افتح اليوم وعلّم التمارين التي تريد إضافتها.</p><form method="dialog" class="dform"><div class="plist">${ks.map(k=>{const d=D0[k];return `<details class="pd"><summary><b>${fd(k)}</b> ${esc(d.title||'')} <small>${d.exercises.length} تمارين${d.done?' ✓':''}</small></summary>${d.exercises.map((e,i)=>`<label class="pe"><input type="checkbox" data-pe="${k}|${i}"><span><b>${esc(e.n||'—')}</b><small>${SS(e).map(y=>(+y.r||0)+'×'+(+y.w||0)).join(' · ')}</small></span></label>`).join('')}<button class="btn sm" value="day:${k}">نسخ اليوم كله</button></details>`}).join('')}</div><div class="dact"><button class="btn main" value="add">إضافة المحدد</button><button class="btn" value="">إلغاء</button></div></form>`);
+  if(!v)return;
+  const cur=dayData(S.me.uid,S.sel);if(cur.done)return;
+  if(v==='add'){
+    const ex=[...D.querySelectorAll('input[data-pe]:checked')].flatMap(c=>{const [k,i]=c.dataset.pe.split('|');return clean([D0[k].exercises[+i]])});
+    if(!ex.length)return toast('لم تحدد أي تمرين');
+    return mutate(d=>d.exercises.push(...ex));
+  }
+  const src=D0[v.slice(4)];if(!src)return;
+  let m='add';
+  if((cur.exercises||[]).length)m=await show(`<h3>اليوم الحالي فيه تمارين</h3><p>ماذا تريد؟</p><form method="dialog" class="dact"><button class="btn main" value="add">إضافة للموجود</button><button class="btn" value="rep">استبدال</button><button class="btn" value="">إلغاء</button></form>`);
+  if(!m)return;
+  mutate(d=>{const ex=clean(src.exercises),ml=structuredClone(src.meals||[]);
+    if(m==='rep'){d.exercises=ex;d.meals=ml}else{d.exercises.push(...ex);d.meals.push(...ml)}
+    if(!d.title||m==='rep')d.title=src.title||d.title||''});
+}
+async function copyDay(){
+  const k=await pickDate('نسخ اليوم','اختر اليوم الذي سيُنسخ إليه (التمارين والعنوان والأكل).');if(!k||k===S.sel)return;
+  const t=structuredClone(dayData(S.me.uid,k)),d=dayData(S.me.uid,S.sel);
+  if(t.done)return msg('اليوم مكتمل','لا يمكن النسخ إلى يوم مكتمل.');
+  if((S.days[S.me.uid]?.[k]?.exercises||[]).length&&!await ask('استبدال','اليوم المختار فيه تمارين. هل تريد استبدالها؟','استبدال'))return;
+  put(k,{...t,title:d.title||'',exercises:clean(d.exercises||[]),meals:structuredClone(d.meals||[]),done:false});
+}
+async function copyEx(i){
+  const e=dayData(S.me.uid,S.sel).exercises[i];if(!e)return;
+  const k=await pickDate('نسخ التمرين «'+esc(e.n||'')+'»','اختر اليوم الذي سيُضاف إليه التمرين بمجموعاته.');if(!k)return;
+  const t=structuredClone(dayData(S.me.uid,k));if(t.done)return msg('اليوم مكتمل','لا يمكن النسخ إلى يوم مكتمل.');
+  put(k,{...t,exercises:[...(t.exercises||[]),...clean([e])]});
+}
+const libL=()=>Object.entries(prof().lib||{}).sort((a,b)=>(a[1].n||'').localeCompare(b[1].n||'','ar'));
+const tplL=()=>Object.entries(prof().tpl||{}).sort((a,b)=>(a[1].title||'').localeCompare(b[1].title||'','ar'));
+const uid36=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+const setsTxt=a=>SS({sets:a}).map(y=>(+y.r||0)+'×'+(+y.w||0)).join(' · ');
+const fmtSets=a=>SS({sets:a}).map(x=>(+x.r||0)+'x'+(+x.w||0)).join(', ');
+const parseSets=t=>t.split(/[,،]/).map(z=>z.trim()).filter(Boolean).map(z=>{const [a,b]=z.split(/x|×|\*/i);return{r:+a||0,w:+b||0}});
+const putP=(path,val)=>db.doc('users/'+S.me.uid).update({[path]:val});
+const DEL=()=>firebase.firestore.FieldValue.delete();
+const fromLib=o=>({n:o.n,t:o.t||'',rest:+o.rest||0,sets:(o.sets&&o.sets.length?o.sets:[{r:'',w:''}]).map(x=>({r:x.r,w:x.w,x:false}))});
+const tplEx=e=>({n:e.n||'',t:e.t||'',rest:+e.rest||0,sets:SS(e).map(x=>({r:x.r,w:x.w}))});
+async function pickEx(){
+  const M=exData(S.me.uid),LB=libL(),inLib=new Set(LB.map(([,o])=>o.n)),hist=Object.keys(M).filter(n=>!inLib.has(n)).sort((a,b)=>M[b].at(-1).k.localeCompare(M[a].at(-1).k));
+  const p=show(`<h3>اختيار تمرين</h3><form method="dialog" class="dform"><input id="pq" type="search" class="big" placeholder="ابحث باسم التمرين أو اكتب اسماً جديداً" autocomplete="off" autofocus><div id="pl" class="plist"></div><button class="btn" value="">إغلاق</button></form>`);
+  const draw=()=>{const q=$('#pq').value.trim(),
+    a=LB.filter(([,o])=>(o.n||'').includes(q)).map(([id,o])=>`<button class="pi" value="L:${id}"><b>${esc(o.n)}</b><small>${o.rest?'راحة '+o.rest+' ث · ':''}${(o.sets||[]).length?setsTxt(o.sets):'بدون مجموعات محفوظة'}</small></button>`),
+    b=hist.filter(n=>n.includes(q)).map(n=>{const l=M[n].at(-1);return `<button class="pi" value="H:${esc(n)}"><b>${esc(n)}</b><small>من سجلّك · آخر مرة ${fd(l.k)} · ${setsTxt(l.ss)}</small></button>`}),
+    nw=q&&!inLib.has(q)&&!M[q]?[`<button class="pi new" value="N:${esc(q)}"><b>➕ إنشاء «${esc(q)}» وحفظه في المكتبة</b></button>`]:[];
+    $('#pl').innerHTML=[...nw,...a,...b].join('')||'<div class="empty">لا توجد تمارين محفوظة بعد. اكتب اسم التمرين لإنشائه.</div>'};
+  $('#pq').oninput=draw;draw();
+  const v=await p;if(!v)return;const [k,...r]=v.split(':'),val=r.join(':');let ex;
+  if(k==='L')ex=fromLib(prof().lib[val]);
+  else if(k==='H'){const l=M[val].at(-1);ex={n:val,t:'',rest:l.rest||0,sets:l.ss.map(y=>({r:y.r,w:y.w,x:false}))}}
+  else{ex={n:val,t:'',rest:0,sets:[{r:'',w:'',x:false}]};putP('lib.'+uid36(),{n:val,rest:0,sets:[],t:''})}
+  mutate(d=>d.exercises.push(ex));
+}
+async function editLibEx(id){
+  const o=prof().lib?.[id]||{};
+  const v=await show(`<h3>${id?'تعديل التمرين':'تمرين جديد'}</h3><form method="dialog" class="dform"><label class="fl">اسم التمرين<input id="ln" class="big" value="${esc(o.n||'')}" autofocus></label><label class="fl">وقت الراحة بين المجموعات (ثانية)<input id="lr" type="number" inputmode="numeric" min="0" value="${o.rest||''}"></label><label class="fl">المجموعات الافتراضية: تكرارات x وزن، مفصولة بفاصلة<input id="ls" value="${esc(o.sets?fmtSets(o.sets):'')}" placeholder="تكرارات x وزن، …"></label><label class="fl">ملاحظة<input id="lt" value="${esc(o.t||'')}"></label><div class="dact"><button class="btn main" value="ok">حفظ</button><button class="btn" value="">إلغاء</button></div></form>`);
+  const n=$('#ln').value.trim();if(v!=='ok'||!n)return;
+  putP('lib.'+(id||uid36()),{n,rest:+$('#lr').value||0,sets:parseSets($('#ls').value),t:$('#lt').value.trim()});toast('تم الحفظ ✓');
+}
+async function editTpl(id){
+  const o=prof().tpl?.[id]||{},LB=libL();
+  if(!LB.length)return msg('المكتبة فارغة','أضف تمارين إلى المكتبة أولاً ثم كوّن منها قالب اليوم.');
+  const pos=n=>{const i=(o.exercises||[]).findIndex(e=>e.n===n);return i<0?'':i+1};
+  const v=await show(`<h3>${id?'تعديل قالب اليوم':'قالب يوم جديد'}</h3><form method="dialog" class="dform"><label class="fl">اسم اليوم<input id="tn" class="big" value="${esc(o.title||'')}" placeholder="اسم اليوم" autofocus></label><p class="sum">اكتب رقم الترتيب بجانب كل تمرين تريده في هذا اليوم (1 ثم 2 ثم 3…). اترك الخانة فارغة لاستبعاده.</p><div class="plist">${LB.map(([k,e])=>`<label class="pe"><input type="number" min="1" class="ord" data-lo="${k}" value="${pos(e.n)}" placeholder="#"><span><b>${esc(e.n)}</b><small>${e.rest?'راحة '+e.rest+' ث · ':''}${(e.sets||[]).length?setsTxt(e.sets):''}</small></span></label>`).join('')}</div><div class="dact"><button class="btn main" value="ok">حفظ</button><button class="btn" value="">إلغاء</button></div></form>`);
+  if(v!=='ok')return;
+  const ch=[...D.querySelectorAll('input[data-lo]')].filter(i=>+i.value>0).sort((a,b)=>+a.value-+b.value).map(i=>tplEx(fromLib(prof().lib[i.dataset.lo])));
+  const title=$('#tn').value.trim();if(!ch.length&&!title)return;
+  putP('tpl.'+(id||uid36()),{title,exercises:ch,meals:o.meals||[]});toast('تم حفظ القالب ✓');
+}
+async function saveTpl(){
+  const d=dayData(S.me.uid,S.sel);if(!(d.exercises||[]).length)return msg('لا توجد تمارين','أضف تمارين لليوم أولاً ثم احفظه كقالب.');
+  const v=await show(`<h3>حفظ اليوم كقالب</h3><form method="dialog" class="dform"><label class="fl">اسم القالب<input id="tn" class="big" value="${esc(d.title||'')}" autofocus></label><div class="dact"><button class="btn main" value="ok">حفظ</button><button class="btn" value="">إلغاء</button></div></form>`);
+  const t=$('#tn').value.trim();if(v!=='ok'||!t)return;
+  const have=new Set(libL().map(([,o])=>o.n));
+  d.exercises.forEach(e=>{const n=(e.n||'').trim();if(n&&!have.has(n)){have.add(n);putP('lib.'+uid36(),{n,rest:+e.rest||0,sets:SS(e).map(x=>({r:x.r,w:x.w})),t:e.t||''})}});
+  putP('tpl.'+uid36(),{title:t,exercises:d.exercises.map(tplEx),meals:structuredClone(d.meals||[])});toast('تم حفظ القالب ✓');
+}
+async function saveLibEx(i){
+  const e=dayData(S.me.uid,S.sel).exercises[i],n=(e?.n||'').trim();if(!n)return msg('بدون اسم','اكتب اسم التمرين أولاً.');
+  const id=libL().find(([,o])=>o.n===n)?.[0]||uid36();
+  putP('lib.'+id,{n,rest:+e.rest||0,sets:SS(e).map(x=>({r:x.r,w:x.w})),t:e.t||''});toast('تم حفظه في المكتبة ✓');
+}
+async function useTpl(id){
+  if(!id){const T=tplL();if(!T.length)return msg('لا توجد قوالب','أنشئ قالب يوم من صفحة المكتبة أو احفظ اليوم الحالي كقالب.');
+    id=await show(`<h3>إدراج قالب يوم</h3><form method="dialog" class="dform"><div class="plist">${T.map(([k,t])=>`<button class="pi" value="${k}"><b>${esc(t.title||'بدون اسم')}</b><small>${(t.exercises||[]).map(e=>esc(e.n)).join('، ')}</small></button>`).join('')}</div><button class="btn" value="">إلغاء</button></form>`);if(!id)return}
+  const t=prof().tpl?.[id];if(!t)return;const cur=dayData(S.me.uid,S.sel);
+  if(cur.done)return msg('اليوم مكتمل','لا يمكن التعديل على يوم مكتمل.');
+  let m='add';
+  if((cur.exercises||[]).length)m=await show(`<h3>اليوم الحالي فيه تمارين</h3><p>ماذا تريد؟</p><form method="dialog" class="dact"><button class="btn main" value="add">إضافة للموجود</button><button class="btn" value="rep">استبدال</button><button class="btn" value="">إلغاء</button></form>`);
+  if(!m)return;
+  mutate(d=>{const ex=(t.exercises||[]).map(fromLib),ml=structuredClone(t.meals||[]);
+    if(m==='rep'){d.exercises=ex;d.meals=ml}else{d.exercises.push(...ex);d.meals.push(...ml)}
+    if(m==='rep'||!d.title)d.title=t.title||d.title||''});
+}
+function renderLibPage(){
+  const LB=libL(),T=tplL();
+  $('#vLib').innerHTML=`<div class="sbox"><h3>مكتبة التمارين</h3><p class="sum">تمارينك المحفوظة بالاسم ووقت الراحة والمجموعات الافتراضية.</p>${LB.map(([id,o])=>`<div class="lib"><div><b>${esc(o.n)}</b><small>${o.rest?'راحة '+o.rest+' ث':'بدون وقت راحة'} · ${(o.sets||[]).length?setsTxt(o.sets):'بدون مجموعات'}${o.t?' · '+esc(o.t):''}</small></div><span class="acts2"><button class="btn sm" data-le="${id}">تعديل</button><button class="btn sm" data-ld="${id}">حذف</button></span></div>`).join('')||'<div class="empty">لا توجد تمارين بعد.</div>'}<button class="btn main sm" data-le="">+ تمرين جديد</button></div>
+  <div class="sbox"><h3>قوالب الأيام</h3><p class="sum">يوم تمرين كامل تحفظه وتدرجه في أي يوم.</p>${T.map(([id,t])=>`<div class="lib"><div><b>${esc(t.title||'بدون اسم')}</b><small>${(t.exercises||[]).map(e=>esc(e.n)).join('، ')||'بدون تمارين'}</small></div><span class="acts2"><button class="btn sm" data-tu="${id}">استخدام في اليوم المحدد</button><button class="btn sm" data-te="${id}">تعديل</button><button class="btn sm" data-td="${id}">حذف</button></span></div>`).join('')||'<div class="empty">لا توجد قوالب بعد.</div>'}<button class="btn main sm" data-te="">+ قالب يوم جديد</button></div>`;
+}
+$('#vLib').onclick=async e=>{const b=e.target.closest('button');if(!b)return;const d=b.dataset;
+  if('le' in d)return editLibEx(d.le);
+  if('te' in d)return editTpl(d.te);
+  if('ld' in d){if(await ask('حذف التمرين','سيُحذف من المكتبة فقط، ولن يتأثر سجلّك.','حذف'))putP('lib.'+d.ld,DEL());return}
+  if('td' in d){if(await ask('حذف القالب','هل تريد حذف هذا القالب؟','حذف'))putP('tpl.'+d.td,DEL());return}
+  if('tu' in d){await useTpl(d.tu);setTab('day')}};
 // ---------- مجموعات، روتين، إعدادات ----------
 const SS=e=>e.sets||Array.from({length:+e.s||0},()=>({r:+e.r||0,w:+e.w||0}));
 const evol=e=>SS(e).reduce((a,x)=>a+(+x.r||0)*(+x.w||0),0);
@@ -191,32 +338,33 @@ const emax=e=>Math.max(0,...SS(e).map(x=>+x.w||0));
 const ensure=e=>{if(!e.sets)e.sets=SS(e).map(x=>({...x}));return e};
 const mmss=r=>Math.floor(r/60)+':'+String(r%60).padStart(2,'0');
 function routineDay(u,k){if(k<iso(new Date()))return null;const r=S.profiles[u]?.routine?.[new Date(k+'T00:00').getDay()];
-  return r?{title:r.title||'',exercises:(r.exercises||[]).map(e=>({n:e.n,t:e.t||'',sets:SS(e).map(x=>({r:x.r,w:x.w,x:false}))})),meals:structuredClone(r.meals||[]),note:'',done:false,fromRoutine:true}:null}
+  return r?{title:r.title||'',exercises:(r.exercises||[]).map(e=>({n:e.n,t:e.t||'',rest:e.rest||0,sets:SS(e).map(x=>({r:x.r,w:x.w,x:false}))})),meals:structuredClone(r.meals||[]),note:'',done:false,fromRoutine:true}:null}
 function renderTimer(){const a=S.profiles[S.me?.uid]?.timer||[120,180,240];$('#tb').innerHTML=a.map(x=>`<button data-s="${x}">${x}</button>`).join('')}
 function exHTML(e,i,can,u){
   const ss=SS(e),all=ss.length&&ss.every(x=>x.x),cl=`ex${all?' dn':''}`;
-  if(!can)return `<div class="${cl}" data-i="${i}"><div class="exh"><button class="lk exn" data-a="info">${i+1}. ${esc(e.n||'—')}</button></div>${ss.map((x,j)=>`<div class="set${x.x?' dn':''}"><span class="sn">${j+1}</span><span>${+x.r||0} عدّة</span><span>${nf(+x.w||0)} كغ</span><span>${x.x?'✓':''}</span></div>`).join('')}${e.t?`<small class="note">${esc(e.t)}</small>`:''}</div>`;
+  if(!can)return `<div class="${cl}" data-i="${i}"><div class="exh"><button class="lk exn" data-a="info">${i+1}. ${esc(e.n||'—')}</button></div>${ss.map((x,j)=>`<div class="set${x.x?' dn':''}"><span class="sn">${j+1}</span><span>${+x.r||0} عدّة</span><span>${nf(+x.w||0)} كغ</span><span>${x.x?'✓':''}</span>${x.n?`<small class="note">${esc(x.n)}</small>`:''}</div>`).join('')}${e.t?`<small class="note">${esc(e.t)}</small>`:''}${e.rest?`<small class="note">⏱ راحة ${e.rest} ث</small>`:''}</div>`;
   const lw=lastW(u,e.n)||'';
-  return `<div class="${cl}" data-i="${i}"><div class="exh"><input data-k="n" list="exl" class="exn" value="${esc(e.n)}" placeholder="اسم التمرين"><span class="acts"><button data-a="info" aria-label="تفاصيل">ⓘ</button><button data-a="up" aria-label="أعلى">▲</button><button data-a="dn" aria-label="أسفل">▼</button><button data-a="rm" aria-label="حذف التمرين">✕</button></span></div><div class="set hd"><span>#</span><span>عدّات</span><span>وزن كغ</span><span>تم</span><span></span></div>`+
-  ss.map((x,j)=>`<div class="set${x.x?' dn':''}" data-j="${j}"><span class="sn">${j+1}</span><input data-s="r" type="number" inputmode="decimal" value="${esc(x.r)}" placeholder="عدّات"><input data-s="w" type="number" inputmode="decimal" step="any" value="${esc(x.w)}" placeholder="${lw||'وزن'}"><input data-s="x" type="checkbox" class="ck" ${x.x?'checked':''} aria-label="تم"><button data-a="srm" class="x" aria-label="حذف المجموعة">✕</button></div>`).join('')+
-  `<div class="exf"><button class="btn sm" data-a="sadd">+ مجموعة</button><input data-k="t" class="note" value="${esc(e.t)}" placeholder="ملاحظة على التمرين…"></div></div>`;
+  return `<div class="${cl}" data-i="${i}"><div class="exh"><input data-k="n" list="exl" class="exn" value="${esc(e.n)}" placeholder="اسم التمرين"><span class="acts"><button data-a="info" aria-label="تفاصيل">ⓘ</button><button data-a="libsave" aria-label="حفظ في المكتبة" title="حفظ في المكتبة">💾</button><button data-a="up" aria-label="أعلى">▲</button><button data-a="dn" aria-label="أسفل">▼</button><button data-a="rm" aria-label="حذف التمرين">✕</button></span></div><div class="set hd"><span>#</span><span>عدّات</span><span>وزن كغ</span><span>تم</span><span></span><span></span></div>`+
+  ss.map((x,j)=>`<div class="set${x.x?' dn':''}" data-j="${j}"><span class="sn">${j+1}</span><input data-s="r" type="number" inputmode="decimal" value="${esc(x.r)}" placeholder="عدّات"><input data-s="w" type="number" inputmode="decimal" step="any" value="${esc(x.w)}" placeholder="${lw||'وزن'}"><input data-s="x" type="checkbox" class="ck" ${x.x?'checked':''} aria-label="تم"><button data-a="sn" class="x" aria-label="ملاحظة المجموعة">📝</button><button data-a="srm" class="x" aria-label="حذف المجموعة">✕</button>${x.n!=null?`<input data-s="n" class="snote" value="${esc(x.n)}" placeholder="ملاحظة هذه المجموعة…">`:''}</div>`).join('')+
+  `<div class="exf"><button class="btn sm" data-a="sadd">+ مجموعة</button><label class="rest" title="وقت الراحة بين المجموعات لهذا التمرين">⏱<input data-k="rest" list="rl" type="number" inputmode="numeric" min="0" max="3600" value="${e.rest||''}" placeholder="راحة ث"></label><input data-k="t" class="note" value="${esc(e.t)}" placeholder="ملاحظة على التمرين…"></div></div>`;
 }
-const prof=()=>S.profiles[S.me.uid]||{};
+const prof=()=>S.profiles[S.me?.uid]||{};
 const saveP=o=>{db.doc('users/'+S.me.uid).set(o,{merge:true});toast('تم الحفظ ✓')};
-const fmtEx=a=>(a||[]).map(e=>e.n+': '+SS(e).map(x=>(+x.r||0)+'x'+(+x.w||0)).join(', ')).join('\n');
-const parseEx=t=>t.split('\n').map(l=>l.trim()).filter(Boolean).map(l=>{const [n,...r]=l.split(':'),sets=r.join(':').split(/[,،]/).map(z=>z.trim()).filter(Boolean).map(z=>{const [a,b]=z.split(/x|×|\*/i);return{r:+a||0,w:+b||0}});return{n:n.trim(),t:'',sets:sets.length?sets:[{r:10,w:0}]}});
+const fmtEx=a=>(a||[]).map(e=>e.n+': '+SS(e).map(x=>(+x.r||0)+'x'+(+x.w||0)).join(', ')+(e.rest?' | '+e.rest:'')).join('\n');
+const parseEx=t=>t.split('\n').map(l=>l.trim()).filter(Boolean).map(l=>{const [main,rs]=l.split('|'),[n,...r]=main.split(':'),sets=r.join(':').split(/[,،]/).map(z=>z.trim()).filter(Boolean).map(z=>{const [a,b]=z.split(/x|×|\*/i);return{r:+a||0,w:+b||0}});return{n:n.trim(),t:'',rest:+rs||0,sets:sets.length?sets:[{r:10,w:0}]}});
 function renderSet(){
   const p=prof(),rt=p.routine||{};
   $('#vSet').innerHTML=`<div class="sbox"><h3>الحساب</h3><label class="fl">الاسم الظاهر<input id="sn" value="${esc(p.name||'')}" maxlength="20"></label><div class="sum">${esc(S.me.email)}</div><button class="btn" id="slo">تسجيل الخروج</button></div>
   <div class="sbox"><h3>المظهر</h3><label class="fl">الوضع<select id="sth"><option value="">تلقائي (حسب الجهاز)</option><option value="light">نهاري</option><option value="dark">ليلي</option></select></label></div>
-  <div class="sbox"><h3>التدريب</h3><label class="fl">الهدف الأسبوعي (عدد الأيام)<input id="sg" type="number" min="1" max="7" value="${+p.goal||4}"></label><label class="fl">أزمنة مؤقت الراحة بالثواني (افصل بفاصلة)<input id="st" value="${(p.timer||[120,180,240]).join(', ')}"></label></div>
+  <div class="sbox"><h3>التدريب</h3><label class="fl">الهدف الأسبوعي (عدد الأيام)<input id="sg" type="number" min="1" max="7" value="${+p.goal||4}"></label><label class="fl">أزمنة مؤقت الراحة بالثواني (افصل بفاصلة)<input id="st" value="${(p.timer||[120,180,240]).join(', ')}"></label><label class="check"><input type="checkbox" id="sa" ${p.auto===false?'':'checked'}>بدء مؤقت الراحة تلقائياً عند تعليم مجموعة</label><label class="check"><input type="checkbox" id="ss" ${p.sound===false?'':'checked'}>صوت واهتزاز وإشعار عند انتهاء الراحة</label></div>
   <div class="sbox"><h3>الروتين الأسبوعي</h3><p class="sum">تمارين ثابتة تظهر تلقائياً في اليوم المحدد (من اليوم فصاعداً) وتقدر تعدّل عليها.</p>${DOW.map((n,i)=>`<div class="rr"><b>${n}</b><span>${rt[i]?esc(rt[i].title||'روتين')+' · '+(rt[i].exercises||[]).length+' تمارين':'راحة'}</span><button class="btn sm" data-r="${i}">تعديل</button>${rt[i]?`<button class="btn sm" data-rc="${i}">مسح</button>`:''}</div>`).join('')}</div>
   <div class="sbox"><h3>البيانات</h3><div class="hbtn"><button class="btn" id="sex">تصدير نسخة احتياطية</button><label class="btn">استيراد نسخة<input id="sim" type="file" accept="application/json" hidden></label></div></div>`;
   $('#sth').value=localStorage.t||'';
 }
 async function editRoutine(i){
   const r=prof().routine?.[i]||{};
-  const v=await show(`<h3>روتين ${DOW[i]}</h3><form method="dialog" class="dform"><label class="fl">اسم اليوم<input id="rt" value="${esc(r.title||'')}" placeholder="مثال: صدر وترايسبس"></label><label class="fl">التمارين: سطر لكل تمرين بالصيغة  الاسم: تكرارات x وزن، …<textarea id="rx" rows="7" placeholder="بنش بريس: 10x60, 8x70, 6x80&#10;تفتيح: 12x15, 12x15">${esc(fmtEx(r.exercises))}</textarea></label><div class="dact"><button class="btn main" value="ok">حفظ</button><button class="btn" value="">إلغاء</button></div></form>`);
+  const pr=show(`<h3>روتين ${DOW[i]}</h3><form method="dialog" class="dform">${tplL().length?`<label class="fl">تعبئة من قالب محفوظ<select id="rtp"><option value="">—</option>${tplL().map(([k,t])=>`<option value="${k}">${esc(t.title||'بدون اسم')}</option>`).join('')}</select></label>`:''}<label class="fl">اسم اليوم<input id="rt" value="${esc(r.title||'')}" placeholder="الاسم"></label><label class="fl">التمارين: سطر لكل تمرين بالصيغة  الاسم: تكرارات x وزن، … | ثواني الراحة (اختياري)<textarea id="rx" rows="7" placeholder="الاسم: تكرارات x وزن، … | ثواني الراحة">${esc(fmtEx(r.exercises))}</textarea></label><div class="dact"><button class="btn main" value="ok">حفظ</button><button class="btn" value="">إلغاء</button></div></form>`);
+  const sl=$('#rtp');if(sl)sl.onchange=()=>{const t=prof().tpl?.[sl.value];if(t){$('#rt').value=t.title||'';$('#rx').value=fmtEx(t.exercises)}};const v=await pr;
   if(v==='ok'){const ex=parseEx($('#rx').value),t=$('#rt').value.trim();if(!ex.length&&!t)return;db.doc('users/'+S.me.uid).update({['routine.'+i]:{title:t,exercises:ex}});toast('تم حفظ الروتين ✓')}
 }
 async function importData(f){
@@ -229,6 +377,8 @@ $('#vSet').onchange=e=>{const t=e.target;
   if(t.id==='sn'&&t.value.trim())saveP({name:t.value.trim()});
   if(t.id==='sg')saveP({goal:Math.min(7,Math.max(1,+t.value||4))});
   if(t.id==='st'){const a=t.value.split(/[,،\s]+/).map(Number).filter(x=>x>0&&x<=3600).slice(0,5);saveP({timer:a.length?a:[120,180,240]})}
+  if(t.id==='sa')saveP({auto:t.checked});
+  if(t.id==='ss')saveP({sound:t.checked});
   if(t.id==='sth'){document.documentElement.dataset.t=t.value;localStorage.t=t.value}
   if(t.id==='sim'&&t.files[0])importData(t.files[0])};
 $('#vSet').onclick=async e=>{const b=e.target.closest('button');if(!b)return;
@@ -244,7 +394,7 @@ $('#panel').addEventListener('touchend',e=>{const d=e.changedTouches[0].clientX-
 let tm;const T=document.createElement('div');T.id='toast';document.body.append(T);
 function toast(t){T.textContent=t;T.classList.add('on');clearTimeout(tm);tm=setTimeout(()=>T.classList.remove('on'),1400)}
 function confetti(){for(let i=0;i<30;i++){const c=document.createElement('i');c.className='cf';c.style.cssText=`left:${42+Math.random()*16}%;--x:${(Math.random()-.5)*380}px;--y:${-140-Math.random()*280}px;--r:${Math.random()*720}deg;background:${['#2f5bff','#e8590c','#1f9d55','#f5b301','#7c3aed'][i%5]}`;document.body.append(c);setTimeout(()=>c.remove(),1400)}}
-$('#fab').onclick=()=>addExDlg();
+$('#fab').onclick=()=>pickEx();
 $('#menu').onclick=async()=>{
   const v=await show(`<h3>القائمة</h3><p>${esc(S.me.email)}</p><form method="dialog" class="menu">${[['nm','✏️','تغيير اسمي'],['theme','🌓','تبديل الوضع الليلي / النهاري'],['exp','💾','نسخة احتياطية لبياناتي'],['logout','🚪','تسجيل الخروج']].map(([i,ic,t])=>`<button class="btn" value="${i}"><span>${ic}</span>${t}</button>`).join('')}<button class="btn" value="">إغلاق</button></form>`);
   if(v)$('#'+v).click();
@@ -253,14 +403,14 @@ $('#menu').onclick=async()=>{
 // ---------- الواجهة الرئيسية والنوافذ ----------
 const numF=(l,id,v='')=>`<label data-l="${l}"><input id="${id}" type="number" inputmode="decimal" step="any" min="0" value="${v}"></label>`;
 async function addExDlg(){
-  const p=show(`<h3>إضافة تمرين</h3><form method="dialog" class="dform"><label class="fl">اسم التمرين<input id="xn" list="exl" class="big" placeholder="مثال: بنش بريس" autocomplete="off" autofocus></label><div class="g3">${numF('مجموعات','xs',3)}${numF('عدّات','xr',10)}${numF('وزن كغ','xw')}</div><label class="fl">ملاحظة<input id="xt" placeholder="اختياري: الأداء، الإحساس، الجهاز…"></label><div class="dact"><button class="btn main" value="ok">إضافة</button><button class="btn" value="">إلغاء</button></div></form>`);
+  const p=show(`<h3>إضافة تمرين</h3><form method="dialog" class="dform"><label class="fl">اسم التمرين<input id="xn" list="exl" class="big" placeholder="الاسم" autocomplete="off" autofocus></label><div class="g3">${numF('مجموعات','xs',3)}${numF('عدّات','xr',10)}${numF('وزن كغ','xw')}</div><label class="fl">ملاحظة<input id="xt" placeholder="اختياري"></label><div class="dact"><button class="btn main" value="ok">إضافة</button><button class="btn" value="">إلغاء</button></div></form>`);
   $('#xw').oninput=()=>$('#xw').dataset.t=1;
   $('#xn').oninput=()=>{const w=lastW(S.me.uid,$('#xn').value.trim());if(w&&!$('#xw').dataset.t)$('#xw').value=w};
   const v=await p,n=$('#xn').value.trim();
   if(v==='ok'&&n)mutate(d=>d.exercises.push({n,t:$('#xt').value.trim(),sets:Array.from({length:Math.min(12,+$('#xs').value||3)},()=>({r:+$('#xr').value||10,w:+$('#xw').value||0,x:false}))}));
 }
 async function addMealDlg(){
-  const v=await show(`<h3>إضافة وجبة</h3><form method="dialog" class="dform"><label class="fl">الوجبة<input id="mn" class="big" placeholder="مثال: رز ودجاج" autocomplete="off" autofocus></label><div class="g3">${numF('سعرات','mk')}${numF('بروتين جم','mp')}</div><div class="dact"><button class="btn main" value="ok">إضافة</button><button class="btn" value="">إلغاء</button></div></form>`),n=$('#mn').value.trim();
+  const v=await show(`<h3>إضافة وجبة</h3><form method="dialog" class="dform"><label class="fl">الوجبة<input id="mn" class="big" placeholder="الاسم" autocomplete="off" autofocus></label><div class="g3">${numF('سعرات','mk')}${numF('بروتين جم','mp')}</div><div class="dact"><button class="btn main" value="ok">إضافة</button><button class="btn" value="">إلغاء</button></div></form>`),n=$('#mn').value.trim();
   if(v==='ok'&&n)mutate(d=>d.meals.push({n,k:+$('#mk').value||0,p:+$('#mp').value||0}));
 }
 function exInfo(u,i){
@@ -292,7 +442,7 @@ async function showDay(u,k){
   const d=dayData(u,k),mine=u===S.me.uid;
   const ex=(d.exercises||[]).map((e,i)=>`<div class="dl"><b>${i+1}. ${esc(e.n||'—')}</b><span>${SS(e).map(y=>(+y.r||0)+'×'+(+y.w||0)).join(' · ')} · ${nf(evol(e))} حجم</span>${e.t?`<small class="note">${esc(e.t)}</small>`:''}</div>`).join('')||'<div class="empty">لا توجد تمارين.</div>';
   const ml=(d.meals||[]).map(m=>`<div class="dl"><b>${esc(m.n||'—')}</b><span>${nf(+m.k||0)} سعرة · ${nf(+m.p||0)} جم بروتين</span></div>`).join('')||'<div class="empty">لا توجد وجبات.</div>';
-  const v=await show(`<h3>${fd(k)} · ${esc(nameOf(u))}</h3><p>${esc(d.title||'بدون عنوان')} ${d.done?'· ✓ تم التمرين':''}</p>${kpis([['الحجم (كغ)',nf(vol(d))],['السعرات',nf(kcal(d))],['وزن الجسم',d.bw?nf(+d.bw):'—']])}<h4>التمارين</h4>${ex}<h4>الأكل</h4>${ml}${d.note?`<h4>ملاحظات</h4><p>${esc(d.note)}</p>`:''}<form method="dialog" class="dact"><button class="btn main" value="open">${mine?'فتح اليوم للتعديل':'عرض في التقويم'}</button><button class="btn" value="">إغلاق</button></form>`);
+  const v=await show(`<h3>${fd(k)} · ${esc(nameOf(u))}</h3><p>${esc(d.title||'بدون عنوان')} ${d.done?'· ✓ تم التمرين':''}</p>${kpis([['الحجم (كغ)',nf(vol(d))],['السعرات',nf(kcal(d))],['وزن الجسم',d.bw?nf(+d.bw):'—']])}<h4>التمارين</h4>${ex}<h4>الأكل</h4>${ml}${notesArr(d).length?`<h4>ملاحظات</h4>${notesArr(d).map(n=>`<p>${esc(n)}</p>`).join('')}`:''}<form method="dialog" class="dact"><button class="btn main" value="open">${mine?'فتح اليوم للتعديل':'عرض في التقويم'}</button><button class="btn" value="">إغلاق</button></form>`);
   if(v==='open'){S.sel=k;S.view=new Date(k+'T00:00');S.view.setDate(1);setTab('day');render()}
 }
 const avgLine=(s,Y)=>{if(s.p.length<2)return '';const a=s.p.reduce((x,y)=>x+y[1],0)/s.p.length;return `<line x1="50" x2="610" y1="${Y(a)}" y2="${Y(a)}" stroke="${colorOf(s.u)}" stroke-opacity=".5" stroke-dasharray="5 4"/><text x="610" y="${Y(a)-4}" text-anchor="end" style="fill:${colorOf(s.u)}">المعدل ${nf(a)}</text>`};
@@ -310,9 +460,9 @@ const nf=v=>(Math.round(v*10)/10).toLocaleString('ar-EG');
 const whoBar=()=>`<div class="seg">${uids().map(u=>`<button data-w="${u}" class="${u===who()?'on':''}" style="--c:${colorOf(u)}">${esc(nameOf(u))}</button>`).join('')}</div>`;
 const kpis=a=>`<div class="kpis">${a.map(([l,v])=>`<div><b>${v}</b><small>${l}</small></div>`).join('')}</div>`;
 function setTab(t){S.tab=t;document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===t));
-  document.querySelectorAll('.vd').forEach(e=>e.hidden=t!=='day');$('#fab').hidden=t!=='day';$('#vLog').hidden=t!=='log';$('#vEx').hidden=t!=='ex';$('#vSet').hidden=t!=='set';drawView();if(t==='day')fx($('#hero'));fx(t==='day'?$('#panel'):t==='log'?$('#vLog'):t==='set'?$('#vSet'):$('#vEx'))}
+  document.querySelectorAll('.vd').forEach(e=>e.hidden=t!=='day');$('#fab').hidden=t!=='day';$('#vLog').hidden=t!=='log';$('#vEx').hidden=t!=='ex';$('#vSet').hidden=t!=='set';$('#vLib').hidden=t!=='lib';drawView();if(t==='day')fx($('#hero'));fx(t==='day'?$('#panel'):t==='log'?$('#vLog'):t==='set'?$('#vSet'):t==='lib'?$('#vLib'):$('#vEx'))}
 $('#tabs').onclick=e=>{const b=e.target.closest('button');if(b)setTab(b.dataset.v)};
-function drawView(){if(S.tab==='log')renderLog();else if(S.tab==='ex')renderEx();else if(S.tab==='set'&&!document.activeElement?.closest('#vSet'))renderSet()}
+function drawView(){if(S.tab==='log')renderLog();else if(S.tab==='ex')renderEx();else if(S.tab==='lib')renderLibPage();else if(S.tab==='set'&&!document.activeElement?.closest('#vSet'))renderSet()}
 function chart(title,sers,unit){
   const all=sers.flatMap(s=>s.p);
   if(!all.length)return `<div class="cbox"><h4>${title}</h4><div class="empty">لا توجد بيانات بعد.</div></div>`;
@@ -332,7 +482,7 @@ function renderLog(){
   `<div class="loglist">${ks.map(k=>{const d=D[k];return `<button class="lg" data-d="${k}"><i class="${d.done?'ok':''}">${d.done?'✓':'○'}</i><span><b>${fd(k)}</b> ${esc(d.title||'')}</span><small>${(d.exercises||[]).length} تمارين · ${nf(vol(d))} كغ · ${nf(kcal(d))} سعرة${d.bw?' · '+d.bw+' كغ':''}</small><small>${esc((d.exercises||[]).map(e=>e.n).filter(Boolean).slice(0,5).join('، '))}</small></button>`}).join('')||'<div class="empty">لا توجد سجلات مطابقة.</div>'}</div>`;
   if(had){const i=$('#q');i.focus();i.setSelectionRange(q.length,q.length)}
 }
-function exData(u){const m={};Object.keys(S.days[u]||{}).sort().forEach(k=>(S.days[u][k].exercises||[]).forEach(e=>{const n=(e.n||'').trim();if(!n)return;const ss=SS(e),rp=ss.reduce((a,x)=>a+(+x.r||0),0);(m[n]??=[]).push({k,s:ss.length,r:ss.length?rp/ss.length:0,w:emax(e),t:e.t||'',v:evol(e),rm:Math.max(0,...ss.map(x=>(+x.w||0)*(1+(+x.r||0)/30))),ss})}));return m}
+function exData(u){const m={};Object.keys(S.days[u]||{}).sort().forEach(k=>(S.days[u][k].exercises||[]).forEach(e=>{const n=(e.n||'').trim();if(!n)return;const ss=SS(e),rp=ss.reduce((a,x)=>a+(+x.r||0),0);(m[n]??=[]).push({k,s:ss.length,r:ss.length?rp/ss.length:0,w:emax(e),t:e.t||'',rest:e.rest||0,v:evol(e),rm:Math.max(0,...ss.map(x=>(+x.w||0)*(1+(+x.r||0)/30))),ss})}));return m}
 function renderEx(){
   const u=who(),M=exData(u),names=Object.keys(M).sort((a,b)=>M[b].length-M[a].length);
   if(!names.includes(S.exn))S.exn=names[0];

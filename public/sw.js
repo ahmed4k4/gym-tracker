@@ -1,4 +1,4 @@
-const C='gym-v8';
+const C='gym-v12';
 const SHELL=['./','index.html','style.css','app.js','firebase-config.js','manifest.json',
 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js',
 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js',
@@ -13,3 +13,9 @@ self.addEventListener('fetch',e=>{
     return hit||net;
   }));
 });
+
+let L=0;
+self.addEventListener('message',e=>{const d=e.data||{};
+  if(d.cancel){L=0;return}
+  if(d.rest){L=d.id;e.waitUntil(new Promise(r=>setTimeout(()=>{if(L===d.id)self.registration.showNotification('انتهت الراحة 💪',{body:'ابدأ المجموعة التالية',tag:'rest',renotify:true,vibrate:[300,100,300]}).catch(()=>{});r()},d.rest)))}});
+self.addEventListener('notificationclick',e=>{e.notification.close();e.waitUntil(clients.matchAll({type:'window'}).then(c=>c[0]?c[0].focus():clients.openWindow('./')))});
